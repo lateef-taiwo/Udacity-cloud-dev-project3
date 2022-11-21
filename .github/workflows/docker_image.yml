@@ -1,34 +1,58 @@
-# Docker image for the Continuous integration pipeline
-name: Docker Image CI
+# Docker image for Continuous integration 
+name: Docker Build and Deploy
 
 on:
-    push:
-        branches: [ "main" ]
+  push:
+    branches: [main]
 
-jobs:
-    build:
-        runs-on: ubuntu-latest
+jobs: 
+  build:
+    runs-on:  ubuntu-latest
 
-    
-        steps:
-        - name: Checkout 
-          uses: actions/checkout@v2
+    steps
+    - uses: actions/checkout@v2
+      name: checkout code
 
-        - name: Login to Docker Hub
-          uses: docker/login-action@v1
-          with:
-            username: ${{ secrets.DOCKER_HUB_USERNAME }}
-            password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+    - uses: mr-smithers-excellent/docker-build-push@v5
+      name: build and push docker image for feed
+      with:
+        image: savytech/udagram-api-feed
+        tags: v5,latest
+        registry: docker.io
+        directory: udagram-api-feed
+        dockerfile: udagram-api-feed/Dockerfile
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
-        - name: Set up Docker Buildx
-          uses: docker/setup-buildx-action@v1
+    - uses: mr-smithers-excellent/docker-build-push@v5
+      name: build and push docker image for user
+      with:
+        image: savytech/udagram-api-user
+        tags: v6,latest
+        registry: docker.io
+        directory: udagram-api-user
+        dockerfile: udagram-api-user/Dockerfile
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
-        - name: Build and push
-          uses: docker/build-push-action@v2
-          with:
-            context: ./udagram_frontend
-            file: ./udagram_frontend/dockerfile
-            push: true
-            tags: ${{ secrets.DOCKER_HUB_USERNAME }}/udacity_udagram_frontend:v1.0.2
-            cache-from: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/udacity_udagram_frontend:buildcache
-            cache-to: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/udacity_udagram_frontend:buildcache,mode=max
+    - uses: mr-smithers-excellent/docker-build-push@v5
+      name: build and push docker image for frontend
+      with:
+        image: savytech/udagram-frontend
+        tags: v7,latest
+        registry: docker.io
+        directory: udagram-frontend
+        dockerfile: udagram-frontend/Dockerfile
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }} 
+
+        - uses: mr-smithers-excellent/docker-build-push@v5
+      name: build and push docker image for reverseproxy
+      with:
+        image: savytech/udagram-reverseproxy
+        tags: v5,latest
+        registry: docker.io
+        directory: udagram-reverseproxy
+        dockerfile: udagram-reverseproxy/Dockerfile
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
